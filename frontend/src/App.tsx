@@ -1,4 +1,5 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 type ChatRole = 'user' | 'assistant';
 
@@ -44,18 +45,43 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const lastLoggedTranscriptRef = useRef('');
 
-  const speechSupported = useMemo(() => {
-    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
-  }, []);
+  const {
+    finalTranscript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+    isMicrophoneAvailable
+  } = useSpeechRecognition();
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.abort();
+      void SpeechRecognition.abortListening();
     };
   }, []);
+
+  useEffect(() => {
+    if (!browserSupportsSpeechRecognition) {
+      setError('Голосовой ввод не поддерживается в этом браузере.');
+      return;
+    }
+
+    if (!isMicrophoneAvailable) {
+      setError('Доступ к микрофону запрещен. Проверьте разрешения браузера.');
+    }
+  }, [browserSupportsSpeechRecognition, isMicrophoneAvailable]);
+
+  useEffect(() => {
+    const recognizedText = finalTranscript.trim();
+
+    if (!recognizedText || recognizedText === lastLoggedTranscriptRef.current) {
+      return;
+    }
+
+    lastLoggedTranscriptRef.current = recognizedText;
+    console.log(recognizedText);
+  }, [finalTranscript]);
 
   const submitMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -114,66 +140,32 @@ function App() {
   const toggleVoiceInput = useCallback(() => {
     setError('');
 
-    if (!speechSupported) {
+    if (!browserSupportsSpeechRecognition) {
       setError('Голосовой ввод не поддерживается в этом браузере.');
       return;
     }
 
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+    if (!isMicrophoneAvailable) {
+      setError('Доступ к микрофону запрещен. Проверьте разрешения браузера.');
       return;
     }
 
-    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Recognition) {
+    if (listening) {
+      void SpeechRecognition.stopListening();
       return;
     }
 
-    const recognition = new Recognition();
-    const initialInput = input.trim();
-    let finalTranscript = '';
+    resetTranscript();
+    lastLoggedTranscriptRef.current = '';
 
-    recognition.lang = 'ru-RU';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
-
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const transcript = event.results[index][0].transcript;
-
-        if (event.results[index].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      const spokenText = `${finalTranscript} ${interimTranscript}`.trim();
-      setInput([initialInput, spokenText].filter(Boolean).join(' '));
-    };
-
-    recognition.onerror = (event) => {
-      const browserMessage = event.message ? ` ${event.message}` : '';
-      setError(`Не удалось распознать речь: ${event.error}.${browserMessage}`);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      recognitionRef.current = null;
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  }, [input, isListening, speechSupported]);
+    void SpeechRecognition.startListening({
+      continuous: false,
+      interimResults: true,
+      language: 'ru-RU'
+    }).catch(() => {
+      setError('Не удалось запустить распознавание речи.');
+    });
+  }, [browserSupportsSpeechRecognition, isMicrophoneAvailable, listening, resetTranscript]);
 
   return (
     <main className="app-shell">
@@ -216,12 +208,12 @@ function App() {
 
         <form className="composer" onSubmit={submitMessage}>
           <button
-            className={`voice-button ${isListening ? 'active' : ''}`}
-            disabled={!speechSupported || isLoading}
+            className={`voice-button ${listening ? 'active' : ''}`}
+            disabled={!browserSupportsSpeechRecognition || !isMicrophoneAvailable || isLoading}
             type="button"
             onClick={toggleVoiceInput}
-            aria-label={isListening ? 'Stop recording' : 'Start voice recording'}
-            title={isListening ? 'Stop recording' : 'Start voice recording'}
+            aria-label={listening ? 'Stop recording' : 'Start voice recording'}
+            title={listening ? 'Stop recording' : 'Start voice recording'}
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
               <path d="M12 2.75a3.25 3.25 0 0 0-3.25 3.25v6a3.25 3.25 0 0 0 6.5 0V6A3.25 3.25 0 0 0 12 2.75Z" />
