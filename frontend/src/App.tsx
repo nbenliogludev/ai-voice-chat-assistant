@@ -52,6 +52,7 @@ function App() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<AiProviderName>('groq');
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const lastLoggedTranscriptRef = useRef('');
   const speechInputPrefixRef = useRef('');
   const textInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -73,6 +74,12 @@ function App() {
       void SpeechRecognition.abortListening();
     };
   }, []);
+
+  useEffect(() => {
+    if (!listening) {
+      setIsVoiceRecording(false);
+    }
+  }, [listening]);
 
   useEffect(() => {
     if (!browserSupportsSpeechRecognition) {
@@ -127,12 +134,35 @@ function App() {
     chatThread.scrollTop = chatThread.scrollHeight;
   }, [messages, isLoading]);
 
+  const stopVoiceInput = useCallback(
+    ({ abort = false, reset = false }: { abort?: boolean; reset?: boolean } = {}) => {
+      setIsVoiceRecording(false);
+
+      if (abort) {
+        void SpeechRecognition.abortListening();
+      } else {
+        void SpeechRecognition.stopListening();
+      }
+
+      if (reset) {
+        resetTranscript();
+        lastLoggedTranscriptRef.current = '';
+        speechInputPrefixRef.current = '';
+      }
+    },
+    [resetTranscript]
+  );
+
   const submitMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedMessage = input.trim();
     if (!trimmedMessage || isLoading) {
       return;
+    }
+
+    if (isVoiceRecording || listening) {
+      stopVoiceInput({ abort: true, reset: true });
     }
 
     const userMessage: ChatMessage = {
@@ -211,8 +241,8 @@ function App() {
       return;
     }
 
-    if (listening) {
-      void SpeechRecognition.stopListening();
+    if (isVoiceRecording || listening) {
+      stopVoiceInput();
       return;
     }
 
@@ -224,12 +254,14 @@ function App() {
     resetTranscript();
     lastLoggedTranscriptRef.current = '';
     speechInputPrefixRef.current = input.trim();
+    setIsVoiceRecording(true);
 
     void SpeechRecognition.startListening({
       continuous: true,
       interimResults: true,
       language: 'ru-RU'
     }).catch(() => {
+      setIsVoiceRecording(false);
       setError('Не удалось запустить распознавание речи.');
     });
   }, [
@@ -237,8 +269,10 @@ function App() {
     browserSupportsSpeechRecognition,
     input,
     isMicrophoneAvailable,
+    isVoiceRecording,
     listening,
-    resetTranscript
+    resetTranscript,
+    stopVoiceInput
   ]);
 
   return (
@@ -310,14 +344,14 @@ function App() {
 
           <form className="composer" onSubmit={submitMessage}>
             <button
-              className={`voice-button ${listening ? 'active' : ''}`}
+              className={`voice-button ${isVoiceRecording ? 'active' : ''}`}
               disabled={!browserSupportsSpeechRecognition || !isMicrophoneAvailable || isLoading}
               type="button"
               onClick={toggleVoiceInput}
-              aria-label={listening ? 'Stop recording' : 'Start voice recording'}
-              title={listening ? 'Stop recording' : 'Start voice recording'}
+              aria-label={isVoiceRecording ? 'Stop recording' : 'Start voice recording'}
+              title={isVoiceRecording ? 'Stop recording' : 'Start voice recording'}
             >
-              {listening ? (
+              {isVoiceRecording ? (
                 <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                   <path d="M8 7.5A1.5 1.5 0 0 1 9.5 6h5A1.5 1.5 0 0 1 16 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 16.5v-9Z" />
                 </svg>
