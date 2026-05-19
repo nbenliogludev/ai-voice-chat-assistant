@@ -8,9 +8,11 @@ import {
   Body
 } from '@nestjs/common';
 import { AiProviderService } from '../ai/ai-provider.service';
+import { AiProviderName, isAiProviderName } from '../ai/ai-provider.types';
 
 type ChatRequestBody = {
   message?: unknown;
+  provider?: unknown;
 };
 
 type ChatResponse = {
@@ -24,6 +26,7 @@ export class ChatController {
   @Post()
   async createReply(@Body() body: ChatRequestBody): Promise<ChatResponse> {
     const message = typeof body?.message === 'string' ? body.message.trim() : '';
+    const provider = this.getRequestProvider(body?.provider);
 
     if (!message) {
       throw new BadRequestException({
@@ -34,7 +37,7 @@ export class ChatController {
     }
 
     try {
-      const reply = await this.aiProviderService.generateReply(message);
+      const reply = await this.aiProviderService.generateReply(message, provider);
 
       return { reply };
     } catch (error) {
@@ -48,5 +51,31 @@ export class ChatController {
         error: 'Unexpected server error.'
       });
     }
+  }
+
+  private getRequestProvider(provider: unknown): AiProviderName | undefined {
+    if (provider === undefined || provider === null || provider === '') {
+      return undefined;
+    }
+
+    if (typeof provider !== 'string') {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'AI provider must be either groq or gemini.',
+        error: 'Invalid AI provider.'
+      });
+    }
+
+    const normalizedProvider = provider.trim().toLowerCase();
+
+    if (isAiProviderName(normalizedProvider)) {
+      return normalizedProvider;
+    }
+
+    throw new BadRequestException({
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'AI provider must be either groq or gemini.',
+      error: 'Invalid AI provider.'
+    });
   }
 }
