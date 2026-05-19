@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 type ChatRole = 'user' | 'assistant';
@@ -179,6 +179,20 @@ function App() {
     }
   };
 
+  const submitMessageOnEnter = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (!input.trim() || isLoading) {
+      return;
+    }
+
+    event.currentTarget.form?.requestSubmit();
+  };
+
   const toggleVoiceInput = useCallback(() => {
     setError('');
 
@@ -297,6 +311,7 @@ function App() {
               rows={1}
               value={input}
               onChange={(event) => setInput(event.target.value)}
+              onKeyDown={submitMessageOnEnter}
             />
             <button className="send-button" disabled={!input.trim() || isLoading} type="submit" aria-label="Send message">
               <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
