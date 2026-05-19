@@ -273,10 +273,13 @@ h1 {
 }
 
 .voice-button:focus-visible,
-.send-button:focus-visible,
-.composer textarea:focus-visible {
+.send-button:focus-visible {
   outline: 3px solid rgba(255, 255, 255, 0.36);
   outline-offset: 4px;
+}
+
+.composer textarea:focus-visible {
+  outline: 0;
 }
 
 .voice-button {
