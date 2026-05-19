@@ -46,12 +46,16 @@ function App() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const lastLoggedTranscriptRef = useRef('');
+  const speechInputPrefixRef = useRef('');
+  const textInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const {
+    transcript,
     finalTranscript,
     listening,
     resetTranscript,
     browserSupportsSpeechRecognition,
+    browserSupportsContinuousListening,
     isMicrophoneAvailable
   } = useSpeechRecognition();
 
@@ -82,6 +86,27 @@ function App() {
     lastLoggedTranscriptRef.current = recognizedText;
     console.log(recognizedText);
   }, [finalTranscript]);
+
+  useEffect(() => {
+    const spokenText = transcript.trim();
+
+    if (!spokenText) {
+      return;
+    }
+
+    setInput([speechInputPrefixRef.current, spokenText].filter(Boolean).join(' '));
+  }, [transcript]);
+
+  useEffect(() => {
+    const textInput = textInputRef.current;
+
+    if (!textInput) {
+      return;
+    }
+
+    textInput.style.height = 'auto';
+    textInput.style.height = `${Math.min(textInput.scrollHeight, 180)}px`;
+  }, [input]);
 
   const submitMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -155,17 +180,30 @@ function App() {
       return;
     }
 
+    if (!browserSupportsContinuousListening) {
+      setError('Непрерывное распознавание речи не поддерживается в этом браузере.');
+      return;
+    }
+
     resetTranscript();
     lastLoggedTranscriptRef.current = '';
+    speechInputPrefixRef.current = input.trim();
 
     void SpeechRecognition.startListening({
-      continuous: false,
+      continuous: true,
       interimResults: true,
       language: 'ru-RU'
     }).catch(() => {
       setError('Не удалось запустить распознавание речи.');
     });
-  }, [browserSupportsSpeechRecognition, isMicrophoneAvailable, listening, resetTranscript]);
+  }, [
+    browserSupportsContinuousListening,
+    browserSupportsSpeechRecognition,
+    input,
+    isMicrophoneAvailable,
+    listening,
+    resetTranscript
+  ]);
 
   return (
     <main className="app-shell">
@@ -215,14 +253,22 @@ function App() {
             aria-label={listening ? 'Stop recording' : 'Start voice recording'}
             title={listening ? 'Stop recording' : 'Start voice recording'}
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-              <path d="M12 2.75a3.25 3.25 0 0 0-3.25 3.25v6a3.25 3.25 0 0 0 6.5 0V6A3.25 3.25 0 0 0 12 2.75Z" />
-              <path d="M18.75 10.75a1 1 0 1 0-2 0 4.75 4.75 0 0 1-9.5 0 1 1 0 1 0-2 0 6.75 6.75 0 0 0 5.75 6.67V20a1 1 0 1 0 2 0v-2.58a6.75 6.75 0 0 0 5.75-6.67Z" />
-            </svg>
+            {listening ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                <path d="M8 7.5A1.5 1.5 0 0 1 9.5 6h5A1.5 1.5 0 0 1 16 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 16.5v-9Z" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                <path d="M12 2.75a3.25 3.25 0 0 0-3.25 3.25v6a3.25 3.25 0 0 0 6.5 0V6A3.25 3.25 0 0 0 12 2.75Z" />
+                <path d="M18.75 10.75a1 1 0 1 0-2 0 4.75 4.75 0 0 1-9.5 0 1 1 0 1 0-2 0 6.75 6.75 0 0 0 5.75 6.67V20a1 1 0 1 0 2 0v-2.58a6.75 6.75 0 0 0 5.75-6.67Z" />
+              </svg>
+            )}
           </button>
-          <input
+          <textarea
             aria-label="Текст сообщения"
             placeholder="Ask whatever you want"
+            ref={textInputRef}
+            rows={1}
             value={input}
             onChange={(event) => setInput(event.target.value)}
           />
