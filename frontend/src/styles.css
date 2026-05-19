@@ -152,7 +152,7 @@ h1 {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 14px;
+  gap: 22px;
   justify-content: flex-start;
   max-width: 820px;
   min-height: 0;
@@ -163,41 +163,86 @@ h1 {
 }
 
 .message {
-  border-radius: 16px;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.15);
-  max-width: min(720px, 88%);
-  padding: 14px 17px;
-}
-
-.message span {
-  color: rgba(232, 241, 255, 0.7);
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 750;
-  margin-bottom: 4px;
-  text-transform: uppercase;
+  max-width: min(720px, 100%);
 }
 
 .message p {
   color: #fff;
+  font-size: 1.1rem;
+  line-height: 1.52;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
+.markdown-message {
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1.52;
+  overflow-wrap: anywhere;
+}
+
+.markdown-message :where(p, ul, ol) {
+  margin: 0;
+}
+
+.markdown-message :where(p + p, p + ul, p + ol, ul + p, ol + p) {
+  margin-top: 0.85em;
+}
+
+.markdown-message :where(ul, ol) {
+  padding-left: 1.4em;
+}
+
+.markdown-message li + li {
+  margin-top: 0.42em;
+}
+
+.markdown-message strong {
+  font-weight: 750;
+}
+
 .message.user {
   align-self: flex-end;
-  background: rgba(67, 122, 222, 0.58);
-  border: 1px solid rgba(151, 190, 255, 0.22);
+  background: rgba(64, 119, 215, 0.78);
+  border-radius: 26px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+  max-width: min(560px, 82%);
+  padding: 13px 20px;
 }
 
 .message.assistant {
   align-self: flex-start;
-  background: rgba(2, 24, 63, 0.5);
-  border: 1px solid rgba(151, 190, 255, 0.16);
+  max-width: min(760px, 100%);
+  padding: 0;
 }
 
-.loading-message p {
-  color: rgba(235, 243, 255, 0.74);
+.loading-message {
+  align-items: center;
+  display: flex;
+  min-height: 38px;
+}
+
+.loading-dot {
+  animation: pulse-dot 1.05s ease-in-out infinite;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.4);
+  display: inline-block;
+  height: 14px;
+  width: 14px;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.72);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .chat-footer {

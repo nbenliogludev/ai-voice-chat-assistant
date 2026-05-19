@@ -1,4 +1,5 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 type ChatRole = 'user' | 'assistant';
@@ -303,14 +304,18 @@ function App() {
           <div className="chat-thread" ref={chatThreadRef} aria-live="polite">
             {messages.map((message) => (
               <article className={`message ${message.role}`} key={message.id}>
-                <span>{message.role === 'user' ? 'You' : 'Assistant'}</span>
-                <p>{message.content}</p>
+                {message.role === 'assistant' ? (
+                  <div className="markdown-message">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p>{message.content}</p>
+                )}
               </article>
             ))}
             {isLoading ? (
-              <article className="message assistant loading-message">
-                <span>Assistant</span>
-                <p>Thinking...</p>
+              <article className="message assistant loading-message" aria-label="Ответ генерируется">
+                <span className="loading-dot" aria-hidden="true" />
               </article>
             ) : null}
           </div>

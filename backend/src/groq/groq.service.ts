@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
+import { AI_RESPONSE_STYLE_PROMPT } from '../ai/ai-response-guidelines';
 
 const DEFAULT_GROQ_MODEL = 'llama-3.1-8b-instant';
 const MAX_COMPLETION_TOKENS = 512;
@@ -64,7 +65,7 @@ export class GroqService {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful AI assistant. Keep responses concise and useful.'
+            content: AI_RESPONSE_STYLE_PROMPT
           },
           {
             role: 'user',
