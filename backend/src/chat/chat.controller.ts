@@ -1,12 +1,13 @@
 import {
   BadRequestException,
   Controller,
+  HttpStatus,
   HttpException,
   InternalServerErrorException,
   Post,
   Body
 } from '@nestjs/common';
-import { GeminiService } from '../gemini/gemini.service';
+import { AiProviderService } from '../ai/ai-provider.service';
 
 type ChatRequestBody = {
   message?: unknown;
@@ -18,18 +19,22 @@ type ChatResponse = {
 
 @Controller('api/chat')
 export class ChatController {
-  constructor(private readonly geminiService: GeminiService) {}
+  constructor(private readonly aiProviderService: AiProviderService) {}
 
   @Post()
   async createReply(@Body() body: ChatRequestBody): Promise<ChatResponse> {
     const message = typeof body?.message === 'string' ? body.message.trim() : '';
 
     if (!message) {
-      throw new BadRequestException('Message is required.');
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Message is required.',
+        error: 'Message is required.'
+      });
     }
 
     try {
-      const reply = await this.geminiService.generateReply(message);
+      const reply = await this.aiProviderService.generateReply(message);
 
       return { reply };
     } catch (error) {
@@ -37,7 +42,11 @@ export class ChatController {
         throw error;
       }
 
-      throw new InternalServerErrorException('Unexpected server error.');
+      throw new InternalServerErrorException({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Unexpected server error.',
+        error: 'Unexpected server error.'
+      });
     }
   }
 }

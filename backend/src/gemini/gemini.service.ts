@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI } from '@google/genai';
 
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 type GeminiErrorDetails = {
   message: string;
@@ -43,25 +43,30 @@ export class GeminiService {
 
   async generateReply(message: string): Promise<string> {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+    const model = this.configService.get<string>('GEMINI_MODEL')?.trim() || DEFAULT_GEMINI_MODEL;
 
     if (!apiKey) {
       this.logger.error('GEMINI_API_KEY is missing. Gemini requests cannot be processed.');
 
-      throw new InternalServerErrorException('GEMINI_API_KEY is not configured.');
+      throw new InternalServerErrorException({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'GEMINI_API_KEY is not configured.',
+        error: 'GEMINI_API_KEY is not configured.'
+      });
     }
 
     try {
-      this.logger.log(`Sending Gemini request. model=${GEMINI_MODEL} messageLength=${message.length}`);
+      this.logger.log(`Sending Gemini request. model=${model} messageLength=${message.length}`);
 
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
+        model,
         contents: message
       });
       const reply = response.text?.trim();
 
       if (!reply) {
-        this.logger.error(`Gemini returned an empty response. model=${GEMINI_MODEL}`);
+        this.logger.error(`Gemini returned an empty response. model=${model}`);
 
         throw new BadGatewayException({
           statusCode: HttpStatus.BAD_GATEWAY,
@@ -70,7 +75,7 @@ export class GeminiService {
         });
       }
 
-      this.logger.log(`Gemini reply generated. model=${GEMINI_MODEL} replyLength=${reply.length}`);
+      this.logger.log(`Gemini reply generated. model=${model} replyLength=${reply.length}`);
 
       return reply;
     } catch (error) {
@@ -83,9 +88,20 @@ export class GeminiService {
       const namePart = details.name ? ` name=${details.name}` : '';
 
       this.logger.error(
-        `Gemini API request failed.${statusPart}${namePart} message=${details.message} model=${GEMINI_MODEL}`,
+        `Gemini API request failed.${statusPart}${namePart} message=${details.message} model=${model}`,
         details.stack
       );
+
+      if (details.status === HttpStatus.TOO_MANY_REQUESTS) {
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.TOO_MANY_REQUESTS,
+            message: 'Gemini quota or rate limit exceeded. Please try again later.',
+            error: 'Gemini quota or rate limit exceeded.'
+          },
+          HttpStatus.TOO_MANY_REQUESTS
+        );
+      }
 
       throw new BadGatewayException({
         statusCode: HttpStatus.BAD_GATEWAY,
