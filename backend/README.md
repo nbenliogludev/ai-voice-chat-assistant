@@ -53,3 +53,27 @@ Successful response:
 ```
 
 Invalid or empty messages return `400`. Missing or invalid backend configuration returns `500`. Provider quota or rate limits return `429`. Provider API failures return `502`.
+
+## Vercel Deployment
+
+Deploy the `backend` directory as a separate Vercel project.
+
+Use these project settings:
+
+- Root Directory: `backend`
+- Framework Preset: Other
+- Build Command: `npm run build`
+
+The Vercel serverless entrypoint is `api/index.ts`. All incoming requests are routed to the NestJS app through `vercel.json`, so `POST /api/chat` keeps the same URL path.
+
+Set the same backend environment variables in Vercel Project Settings:
+
+```bash
+AI_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=llama-3.1-8b-instant
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash-lite
+```
+
+CORS is enabled because the frontend is expected to be deployed as a separate Vercel project and call this backend by URL.
