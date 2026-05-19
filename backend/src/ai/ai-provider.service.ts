@@ -2,10 +2,9 @@ import { HttpStatus, Injectable, InternalServerErrorException, Logger } from '@n
 import { ConfigService } from '@nestjs/config';
 import { GeminiService } from '../gemini/gemini.service';
 import { GroqService } from '../groq/groq.service';
-import { AiProviderName } from './ai-provider.types';
+import { AiProviderName, isAiProviderName } from './ai-provider.types';
 
 const DEFAULT_AI_PROVIDER: AiProviderName = 'groq';
-const AI_PROVIDERS: AiProviderName[] = ['groq', 'gemini'];
 
 @Injectable()
 export class AiProviderService {
@@ -17,8 +16,8 @@ export class AiProviderService {
     private readonly groqService: GroqService
   ) {}
 
-  async generateReply(message: string): Promise<string> {
-    const provider = this.getConfiguredProvider();
+  async generateReply(message: string, providerOverride?: AiProviderName): Promise<string> {
+    const provider = providerOverride || this.getConfiguredProvider();
 
     this.logger.log(`Using AI provider: ${provider}`);
 
@@ -36,8 +35,8 @@ export class AiProviderService {
       return DEFAULT_AI_PROVIDER;
     }
 
-    if (AI_PROVIDERS.includes(configuredProvider as AiProviderName)) {
-      return configuredProvider as AiProviderName;
+    if (isAiProviderName(configuredProvider)) {
+      return configuredProvider;
     }
 
     this.logger.error(`Unsupported AI_PROVIDER configured: ${configuredProvider}`);

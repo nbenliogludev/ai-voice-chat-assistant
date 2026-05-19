@@ -209,6 +209,48 @@ h1 {
   width: 100%;
 }
 
+.provider-switch {
+  align-items: center;
+  align-self: flex-start;
+  background: rgba(7, 39, 91, 0.62);
+  border: 1px solid rgba(112, 165, 255, 0.24);
+  border-radius: 18px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.provider-option {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  color: rgba(229, 238, 255, 0.7);
+  font-size: 0.92rem;
+  font-weight: 720;
+  min-height: 34px;
+  min-width: 78px;
+  padding: 0 14px;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.provider-option.active {
+  background: rgba(61, 127, 224, 0.72);
+  color: #fff;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+}
+
+.provider-option:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.34);
+  outline-offset: 3px;
+}
+
+.provider-option:disabled {
+  opacity: 0.58;
+}
+
 .error-box {
   background: rgba(255, 96, 96, 0.14);
   border: 1px solid rgba(255, 168, 168, 0.42);
@@ -506,6 +548,11 @@ h1 {
     grid-template-columns: 40px minmax(0, 1fr) 50px;
     min-height: 64px;
     padding-left: 8px;
+  }
+
+  .provider-switch {
+    align-self: stretch;
+    justify-content: center;
   }
 
   .composer textarea {

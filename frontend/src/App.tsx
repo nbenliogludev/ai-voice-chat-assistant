@@ -2,6 +2,7 @@ import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } fr
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 type ChatRole = 'user' | 'assistant';
+type AiProviderName = 'groq' | 'gemini';
 
 type ChatMessage = {
   id: string;
@@ -50,6 +51,7 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<AiProviderName>('groq');
   const lastLoggedTranscriptRef = useRef('');
   const speechInputPrefixRef = useRef('');
   const textInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -150,7 +152,10 @@ function App() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ message: trimmedMessage })
+        body: JSON.stringify({
+          message: trimmedMessage,
+          provider: selectedProvider
+        })
       });
 
       const payload = (await response.json().catch(() => ({}))) as ChatResponse;
@@ -283,6 +288,25 @@ function App() {
               {error}
             </div>
           ) : null}
+
+          <div className="provider-switch" aria-label="AI provider">
+            <button
+              className={selectedProvider === 'groq' ? 'provider-option active' : 'provider-option'}
+              disabled={isLoading}
+              type="button"
+              onClick={() => setSelectedProvider('groq')}
+            >
+              Groq
+            </button>
+            <button
+              className={selectedProvider === 'gemini' ? 'provider-option active' : 'provider-option'}
+              disabled={isLoading}
+              type="button"
+              onClick={() => setSelectedProvider('gemini')}
+            >
+              Gemini
+            </button>
+          </div>
 
           <form className="composer" onSubmit={submitMessage}>
             <button
