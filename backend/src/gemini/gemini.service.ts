@@ -8,8 +8,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI } from '@google/genai';
+import { AI_RESPONSE_STYLE_PROMPT } from '../ai/ai-response-guidelines';
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const MAX_OUTPUT_TOKENS = 512;
 
 type GeminiErrorDetails = {
   message: string;
@@ -61,7 +63,11 @@ export class GeminiService {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model,
-        contents: message
+        contents: message,
+        config: {
+          systemInstruction: AI_RESPONSE_STYLE_PROMPT,
+          maxOutputTokens: MAX_OUTPUT_TOKENS
+        }
       });
       const reply = response.text?.trim();
 
