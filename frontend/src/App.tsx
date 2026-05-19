@@ -11,6 +11,7 @@ type ChatMessage = {
 
 type ChatResponse = {
   answer?: string;
+  reply?: string;
   message?: string;
   error?: string;
 };
@@ -33,6 +34,10 @@ const getResponseMessage = (payload: ChatResponse) => {
     return payload.answer.trim();
   }
 
+  if (typeof payload.reply === 'string' && payload.reply.trim()) {
+    return payload.reply.trim();
+  }
+
   if (typeof payload.message === 'string' && payload.message.trim()) {
     return payload.message.trim();
   }
@@ -48,6 +53,8 @@ function App() {
   const lastLoggedTranscriptRef = useRef('');
   const speechInputPrefixRef = useRef('');
   const textInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const chatThreadRef = useRef<HTMLDivElement | null>(null);
+  const hasStartedChat = messages.length > 0 || isLoading;
 
   const {
     transcript,
@@ -107,6 +114,16 @@ function App() {
     textInput.style.height = 'auto';
     textInput.style.height = `${Math.min(textInput.scrollHeight, 180)}px`;
   }, [input]);
+
+  useEffect(() => {
+    const chatThread = chatThreadRef.current;
+
+    if (!chatThread) {
+      return;
+    }
+
+    chatThread.scrollTop = chatThread.scrollHeight;
+  }, [messages, isLoading]);
 
   const submitMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -206,78 +223,88 @@ function App() {
   ]);
 
   return (
-    <main className="app-shell">
-      <section className="assistant-screen" aria-labelledby="page-title">
-        <div className="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M6.4 5.5h11.2A3.4 3.4 0 0 1 21 8.9v5.8a3.4 3.4 0 0 1-3.4 3.4h-4.15l-4.05 3.05a.8.8 0 0 1-1.28-.64V18.1H6.4A3.4 3.4 0 0 1 3 14.7V8.9a3.4 3.4 0 0 1 3.4-3.4Z" />
-          </svg>
-        </div>
+    <main className={hasStartedChat ? 'app-shell chat-mode' : 'app-shell'}>
+      <section
+        className={hasStartedChat ? 'chat-screen' : 'assistant-screen'}
+        aria-label={hasStartedChat ? 'Chat conversation' : undefined}
+        aria-labelledby={!hasStartedChat ? 'page-title' : undefined}
+      >
+        {!hasStartedChat ? (
+          <>
+            <div className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M6.4 5.5h11.2A3.4 3.4 0 0 1 21 8.9v5.8a3.4 3.4 0 0 1-3.4 3.4h-4.15l-4.05 3.05a.8.8 0 0 1-1.28-.64V18.1H6.4A3.4 3.4 0 0 1 3 14.7V8.9a3.4 3.4 0 0 1 3.4-3.4Z" />
+              </svg>
+            </div>
 
-        <div className="hero-copy">
-          <p className="hello">Hi there!</p>
-          <h1 id="page-title">What would you like to know?</h1>
-          <p className="subtitle">
-            <span className="subtitle-line">Use one of the most common prompts below</span>
-            <span>or ask your own question</span>
-          </p>
-        </div>
-
-        <div className={messages.length > 0 || isLoading ? 'conversation visible' : 'conversation'} aria-live="polite">
-          {messages.map((message) => (
-            <article className={`message ${message.role}`} key={message.id}>
-              <span>{message.role === 'user' ? 'You' : 'Assistant'}</span>
-              <p>{message.content}</p>
-            </article>
-          ))}
-          {isLoading ? (
-            <article className="message assistant loading-message">
-              <span>Assistant</span>
-              <p>Thinking...</p>
-            </article>
-          ) : null}
-        </div>
-
-        {error ? (
-          <div className="error-box" role="alert">
-            {error}
+            <div className="hero-copy">
+              <p className="hello">Hi there!</p>
+              <h1 id="page-title">What would you like to know?</h1>
+              <p className="subtitle">
+                <span className="subtitle-line">Use one of the most common prompts below</span>
+                <span>or ask your own question</span>
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="chat-thread" ref={chatThreadRef} aria-live="polite">
+            {messages.map((message) => (
+              <article className={`message ${message.role}`} key={message.id}>
+                <span>{message.role === 'user' ? 'You' : 'Assistant'}</span>
+                <p>{message.content}</p>
+              </article>
+            ))}
+            {isLoading ? (
+              <article className="message assistant loading-message">
+                <span>Assistant</span>
+                <p>Thinking...</p>
+              </article>
+            ) : null}
           </div>
-        ) : null}
+        )}
 
-        <form className="composer" onSubmit={submitMessage}>
-          <button
-            className={`voice-button ${listening ? 'active' : ''}`}
-            disabled={!browserSupportsSpeechRecognition || !isMicrophoneAvailable || isLoading}
-            type="button"
-            onClick={toggleVoiceInput}
-            aria-label={listening ? 'Stop recording' : 'Start voice recording'}
-            title={listening ? 'Stop recording' : 'Start voice recording'}
-          >
-            {listening ? (
+        <div className="chat-footer">
+          {error ? (
+            <div className="error-box" role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          <form className="composer" onSubmit={submitMessage}>
+            <button
+              className={`voice-button ${listening ? 'active' : ''}`}
+              disabled={!browserSupportsSpeechRecognition || !isMicrophoneAvailable || isLoading}
+              type="button"
+              onClick={toggleVoiceInput}
+              aria-label={listening ? 'Stop recording' : 'Start voice recording'}
+              title={listening ? 'Stop recording' : 'Start voice recording'}
+            >
+              {listening ? (
+                <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                  <path d="M8 7.5A1.5 1.5 0 0 1 9.5 6h5A1.5 1.5 0 0 1 16 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 16.5v-9Z" />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                  <path d="M12 2.75a3.25 3.25 0 0 0-3.25 3.25v6a3.25 3.25 0 0 0 6.5 0V6A3.25 3.25 0 0 0 12 2.75Z" />
+                  <path d="M18.75 10.75a1 1 0 1 0-2 0 4.75 4.75 0 0 1-9.5 0 1 1 0 1 0-2 0 6.75 6.75 0 0 0 5.75 6.67V20a1 1 0 1 0 2 0v-2.58a6.75 6.75 0 0 0 5.75-6.67Z" />
+                </svg>
+              )}
+            </button>
+            <textarea
+              aria-label="Текст сообщения"
+              placeholder="Ask whatever you want"
+              ref={textInputRef}
+              rows={1}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+            />
+            <button className="send-button" disabled={!input.trim() || isLoading} type="submit" aria-label="Send message">
               <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                <path d="M8 7.5A1.5 1.5 0 0 1 9.5 6h5A1.5 1.5 0 0 1 16 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 16.5v-9Z" />
+                <path d="M8.22 4.22a1 1 0 0 1 1.42 0l7.07 7.07a1 1 0 0 1 0 1.42l-7.07 7.07a1 1 0 1 1-1.42-1.42L14.59 12 8.22 5.64a1 1 0 0 1 0-1.42Z" />
               </svg>
-            ) : (
-              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                <path d="M12 2.75a3.25 3.25 0 0 0-3.25 3.25v6a3.25 3.25 0 0 0 6.5 0V6A3.25 3.25 0 0 0 12 2.75Z" />
-                <path d="M18.75 10.75a1 1 0 1 0-2 0 4.75 4.75 0 0 1-9.5 0 1 1 0 1 0-2 0 6.75 6.75 0 0 0 5.75 6.67V20a1 1 0 1 0 2 0v-2.58a6.75 6.75 0 0 0 5.75-6.67Z" />
-              </svg>
-            )}
-          </button>
-          <textarea
-            aria-label="Текст сообщения"
-            placeholder="Ask whatever you want"
-            ref={textInputRef}
-            rows={1}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-          />
-          <button className="send-button" disabled={!input.trim() || isLoading} type="submit" aria-label="Send message">
-            <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-              <path d="M8.22 4.22a1 1 0 0 1 1.42 0l7.07 7.07a1 1 0 0 1 0 1.42l-7.07 7.07a1 1 0 1 1-1.42-1.42L14.59 12 8.22 5.64a1 1 0 0 1 0-1.42Z" />
-            </svg>
-          </button>
-        </form>
+            </button>
+          </form>
+        </div>
       </section>
     </main>
   );
