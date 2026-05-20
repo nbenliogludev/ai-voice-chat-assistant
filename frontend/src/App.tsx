@@ -358,7 +358,7 @@ function App() {
             >
               {isVoiceRecording ? (
                 <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                  <path d="M8 7.5A1.5 1.5 0 0 1 9.5 6h5A1.5 1.5 0 0 1 16 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 16.5v-9Z" />
+                  <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3h9A2.5 2.5 0 0 1 19 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5v-13Z" />
                 </svg>
               ) : (
                 <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
